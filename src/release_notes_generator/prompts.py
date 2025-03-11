@@ -1,1 +1,1 @@
-SYSTEM_PROMPT = """You are a helpful AI assistant."""
+RELEASE_NOTES_PROMPT = ""

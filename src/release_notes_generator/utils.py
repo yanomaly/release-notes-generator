@@ -14,5 +14,5 @@ def get_message_text(msg: BaseMessage) -> str:
         return "".join(txts).strip()
 
 
-def load_chat_model(fully_specified_name: str) -> BaseChatModel:
-    return ChatWriter(model_name=fully_specified_name)
+def initialize_model(model_name: str, model_temperature: float) -> BaseChatModel:
+    return ChatWriter(model=model_name, temperature=model_temperature)
