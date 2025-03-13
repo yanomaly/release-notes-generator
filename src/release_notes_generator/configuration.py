@@ -1,32 +1,24 @@
 from __future__ import annotations
 
 import os
-from dataclasses import fields
 from typing import Any, Literal, Optional
 
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-DEFAULT_RELEASE_NOTES_STRUCTURE = """The blog post should follow this strict three-part structure:
+DEFAULT_RELEASE_NOTES_STRUCTURE = """The release notes message should follow this strict three-part structure:
 
 1. Introduction (max 1 section)
-   - Start with ### Key Links and include user-provided links
    - Brief overview of the problem statement
    - Brief overview of the solution/main topic
-   - Maximum 100 words
+   - Maximum 20-30 words
 
-2. Main Body (exactly 2-3 sections)
+2. Main Body (exactly 3-4 sections)
     - Each section must:
       * Cover a distinct aspect of the main topic
       * Include at least one relevant code snippet
-      * Be 150-200 words
-    - No overlap between sections
-
-3. Conclusion (max 1 section)
-   - Brief summary of key points
-   - Key Links
-   - Clear call to action
-   - Maximum 150 words"""
+      * Up to 50 words
+    - No overlap between sections"""
 
 
 class Configuration(BaseModel):
@@ -89,8 +81,8 @@ class Configuration(BaseModel):
             config["configurable"] if config and "configurable" in config else {}
         )
         values: dict[str, Any] = {
-            f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
-            for f in fields(cls)
-            if f.init
+            n: os.environ.get(n.upper(), configurable.get(n))
+            for n, f in cls.model_fields.items()
+            if f.init is None or f.init
         }
         return cls(**{k: v for k, v in values.items() if v})

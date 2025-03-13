@@ -3,54 +3,82 @@ import operator
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 from pydantic import BaseModel, Field
-from typing_extensions import Annotated, List
-
-from release_notes_generator.prompts import RELEASE_NOTES_PROMPT
+from typing_extensions import Annotated
 
 
 class Section(BaseModel):
-    name: str = Field(description="Name for this section of the report.", kw_only=True)
+    name: str = Field(
+        description="Name for this section of the report.",
+    )
     description: str = Field(
         description="Brief overview of the main topics and concepts to be covered in this section.",
-        kw_only=True,
     )
-    content: str = Field(description="The content of the section.", kw_only=True)
-    main_body: bool = Field(
-        description="Whether this is a main body section.", kw_only=True
+    content: str = Field(
+        description="The content of the section.",
     )
 
 
 class Sections(BaseModel):
-    sections: List[Section] = Field(
-        description="Sections of the release notes.", kw_only=True
+    sections: list[Section] = Field(
+        description="Sections of the release notes.",
     )
+
+
+class JiraTicket(BaseModel):
+    name: str = Field()
+    epic: str = Field(default="")
+    description: str = Field(default="")
+    status: str = Field(default="")
 
 
 class ReleaseNotesState(BaseModel):
     messages: Annotated[list[AnyMessage], add_messages]
-    urls: List[str] = Field(default_factory=list, kw_only=True)
-    sections: list[Section] = Field(default_factory=list, kw_only=True)
-    completed_sections: Annotated[list, operator.add]
-    notes_main_body_sections: str = Field(default=None, kw_only=True)
-    final_notes: str = Field(default=None, kw_only=True)
+
+    days_filter: int = Field(default=7, ge=1)
+    generation_prompt: str = Field(default="")
+    urls: list[str] = Field(
+        default_factory=list,
+    )
+    jira_tickets: list[JiraTicket] = Field(
+        default_factory=list,
+    )
+    sections: list[Section] = Field(
+        default_factory=list,
+    )
+    completed_sections: Annotated[list, operator.add] = Field(
+        default_factory=list,
+    )
+
+    final_notes: str = Field(
+        default=None,
+    )
 
 
 class ReleaseNotesStateInput(BaseModel):
-    generation_prompt: str = Field(default=RELEASE_NOTES_PROMPT, kw_only=True)
-    days_filter: int = Field(default=0, kw_only=True, ge=0)
-    urls: List[str] = Field(default_factory=list, kw_only=True)
+    generation_prompt: str = Field(
+        default="",
+    )
+    days_filter: int = Field(default=7, ge=0)
+    urls: list[str] = Field(
+        default_factory=list,
+    )
 
 
 class ReleaseNotesStateOutput:
-    final_notes: str = Field(default=None, kw_only=True)
+    final_notes: str = Field(
+        default=None,
+    )
 
 
 class SectionState(BaseModel):
-    section: Section
-    urls: List[str] = Field(default_factory=list, kw_only=True)
-    notes_main_body_sections: str = Field(default=None, kw_only=True)
-    completed_sections: list[Section] = Field(default_factory=list, kw_only=True)
-
-
-class SectionOutputState(BaseModel):
-    completed_sections: list[Section] = Field(default_factory=list, kw_only=True)
+    section: Section = Field(default=None)
+    urls: list[str] = Field(
+        default_factory=list,
+    )
+    jira_tickets: list[JiraTicket] = Field(
+        default_factory=list,
+    )
+    generation_prompt: str = Field(
+        default="",
+    )
+    messages: list[AnyMessage] = Field()
