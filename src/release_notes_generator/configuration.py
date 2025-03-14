@@ -60,9 +60,15 @@ class Configuration(BaseModel):
         kw_only=True,
     )
 
-    github_repo_url: str = Field(
-        default=os.getenv("GITHUB_URL"),
-        description="URL of GitHub repo to fetch data from. ",
+    github_repos: list[str] = Field(
+        default=os.getenv("GITHUB_REPOS", "").split(" "),
+        description="GitHub repos to fetch data from. ",
+        kw_only=True,
+    )
+
+    github_api_key: str = Field(
+        default=os.getenv("GITHUB_API_KEY"),
+        description="API key to auth on GitHub endpoints. ",
         kw_only=True,
     )
 
@@ -81,7 +87,7 @@ class Configuration(BaseModel):
             config["configurable"] if config and "configurable" in config else {}
         )
         values: dict[str, Any] = {
-            n: os.environ.get(n.upper(), configurable.get(n))
+            n: configurable.get(n) or os.environ.get(n)
             for n, f in cls.model_fields.items()
             if f.init is None or f.init
         }

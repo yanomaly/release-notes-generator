@@ -64,7 +64,6 @@ WRITING GUIDELINES:
     * list second item
     </example>
 
-- Do not use .md formatting such ### for headers etc.
 - Do not include any introductory phrases like 'Here is a draft...' or 'Here is a section...'
 
 3. Grounding:

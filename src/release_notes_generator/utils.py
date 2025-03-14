@@ -5,7 +5,12 @@ from typing import List
 from httpx import AsyncClient, BasicAuth
 
 from release_notes_generator.configuration import Configuration
-from release_notes_generator.state import JiraTicket, ReleaseNotesStateInput
+from release_notes_generator.state import (
+    GitHubRelease,
+    JiraTicket,
+    ReleaseNotesStateInput,
+    SectionState,
+)
 
 
 async def get_jira_tickets(state: ReleaseNotesStateInput, config: Configuration):
@@ -16,7 +21,7 @@ async def get_jira_tickets(state: ReleaseNotesStateInput, config: Configuration)
     async with AsyncClient(auth=auth, headers=headers) as client:
         jql_query = (
             f"project = '{config.jira_project_key}' AND "
-            f"created >= -{state.days_filter}d and status = 'Done/In prod'"
+            f"created >= -{state.days_filter}d and status IN ('Done/In prod', 'Done')"
         )
         url = render_request_url(config.jira_host, jql_query, pagination_start)
 
@@ -62,4 +67,51 @@ def convert_jira_tickets(responses: List[dict]):
     return tickets
 
 
-async def get_github_data(): ...
+async def get_github_releases(config: Configuration):
+    async with AsyncClient() as client:
+        relese_tasks = [
+            load_and_parse_release(config, client, repo) for repo in config.github_repos
+        ]
+        releases = await gather(*relese_tasks)
+
+        return releases
+
+
+async def load_and_parse_release(
+    config: Configuration, client: AsyncClient, repo_name: str
+):
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {config.github_api_key}",
+    }
+
+    response = await client.get(
+        f"https://api.github.com/repos/{repo_name}/releases/latest", headers=headers
+    )
+    release = json.loads(response.text)
+    if release:
+        return GitHubRelease(
+            description=release.get("body", "Description not found"), repo=repo_name
+        )
+    else:
+        return GitHubRelease(repo=repo_name, description="Releases not found")
+
+
+def get_diff_tools(state: SectionState):
+    diff_tools = []
+    for release in state.github_releases:
+        diff_tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": release.repo,
+                    "description": f"Get difference between two last releases of {release.repo} repo and latest release description.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
+                },
+            }
+        )
+    return diff_tools
