@@ -40,7 +40,7 @@ class ReleaseNotesState(BaseModel):
     generation_prompt: str = Field(default="")
     urls: list[str] = Field(default_factory=list)
     jira_tickets: list[JiraTicket] = Field(default_factory=list)
-    github_releases: list[GitHubRelease] = Field(default_factory=list)
+    github_releases: dict[str, GitHubRelease] = Field(default_factory=dict)
     sections: list[Section] = Field(default_factory=list)
     completed_sections: Annotated[list, operator.add] = Field(default_factory=list)
 
@@ -65,6 +65,6 @@ class SectionState(BaseModel):
     jira_tickets: list[JiraTicket] = Field(
         default_factory=list,
     )
-    github_releases: list[GitHubRelease] = Field(default_factory=list)
+    github_releases: dict[str, GitHubRelease] = Field(default_factory=dict)
     generation_prompt: str = Field(default="")
     messages: list[AnyMessage] = Field()

@@ -1,10 +1,10 @@
 import json
-from asyncio import gather, run
+from asyncio import gather
 from typing import Literal
 
 import instructor
 from dotenv import load_dotenv
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_writer import ChatWriter
 from langgraph.constants import END, START
@@ -38,11 +38,9 @@ async def generate_release_notes_plan(
 ):
     """Generate the release notes structure plan"""
     configurable = configuration.Configuration.from_runnable_config(config)
-
     jira_tickets, github_releases = await gather(
         get_jira_tickets(state, configurable), get_github_releases(configurable)
     )
-
     release_notes_prompt = RELEASE_NOTES_PROMPT.format(
         generation_prompt=state.generation_prompt,
         release_notes_structure=configurable.release_notes_structure,
@@ -111,16 +109,28 @@ async def write_section(state: SectionState, config: RunnableConfig):
         model=configurable.model_name, temperature=configurable.model_temperature
     ).bind_tools(get_diff_tools(state))
 
-    response = llm.invoke(state.messages + [HumanMessage(section_instructions)])
+    messages = [HumanMessage(section_instructions)]
+    response = await llm.ainvoke(state.messages + messages)
+    messages += [response]
 
     if response.tool_calls:
-        ...
+        for tool in response.tool_calls:
+            messages += [
+                ToolMessage(
+                    content=state.github_releases.get(tool["name"], ""),
+                    tool_call_id=tool.get("tool_call_id", ""),
+                    name=tool.get("name", ""),
+                )
+            ]
+
+        response = await llm.ainvoke(state.messages + messages)
+        messages += [response]
 
     state.section.content = response.content
 
     return {
         "completed_sections": [state.section],
-        "messages": [HumanMessage(section_instructions), AIMessage(response.content)],
+        "messages": messages,
     }
 
 
@@ -129,7 +139,7 @@ async def compile_final_release_notes(state: ReleaseNotesState):
     completed_sections = {s.name: s.content for s in state.completed_sections}
 
     for section in state.sections:
-        section.content = completed_sections[section.name]
+        section.content = completed_sections.get(section.name, "")
 
     rendered_notes = "\n\n".join([s.content for s in state.sections])
 
@@ -169,4 +179,3 @@ builder.add_edge("compile_final_release_notes", "verify_release_notes")
 graph = builder.compile()
 graph.name = "Release Notes Generator"
 
-# run(graph.ainvoke(input={"days_filter": 14}))
