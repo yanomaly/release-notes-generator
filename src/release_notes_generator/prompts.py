@@ -31,6 +31,9 @@ RELEASE_NOTES_SECTION_PROMPT = """You are an expert technical writer crafting on
 Here are the user instructions for the overall blog post, so that you have context for the overall story:
 {generation_prompt}
 
+You can call tool, which will return to you code difference between latest release and preceding one.
+It's STRONGLY ADVISABLE to use that tool for better code code snippets quality in composing section.
+
 Here is the Section Name you are going to write:
 {section_name}
 
