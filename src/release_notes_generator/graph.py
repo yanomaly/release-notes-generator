@@ -151,8 +151,14 @@ def verify_release_notes(
 ) -> Command[Literal["generate_release_notes_plan", END]]:
     """Verify the final release notes and invoke generation proces in case of any remarks"""
     user_input = interrupt({"final_notes": state.final_notes})
-    if "try_again" in user_input and user_input["try_again"]:
-        return Command(goto="generate_release_notes_plan")
+    if "comment" in user_input and user_input["comment"]:
+        return Command(
+            goto="generate_release_notes_plan",
+            update={
+                "generation_prompt": user_input["comment"],
+                "messages_history": state.messages,
+            },
+        )
     else:
         return Command(goto=END)
 
@@ -164,10 +170,14 @@ builder = StateGraph(
     config_schema=configuration.Configuration,
 )
 
-builder.add_node(generate_release_notes_plan)
-builder.add_node(write_section)
-builder.add_node(compile_final_release_notes)
-builder.add_node(verify_release_notes)
+builder.add_node(node=generate_release_notes_plan, destinations=("write_section",))
+builder.add_node(node=write_section, destinations=("compile_final_release_notes",))
+builder.add_node(
+    node=compile_final_release_notes, destinations=("verify_release_notes",)
+)
+builder.add_node(
+    node=verify_release_notes, destinations=("generate_release_notes_plan", END)
+)
 
 builder.add_edge(START, "generate_release_notes_plan")
 builder.add_conditional_edges(
@@ -178,4 +188,3 @@ builder.add_edge("compile_final_release_notes", "verify_release_notes")
 
 graph = builder.compile()
 graph.name = "Release Notes Generator"
-
