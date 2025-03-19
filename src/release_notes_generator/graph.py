@@ -117,8 +117,8 @@ async def write_section(state: SectionState, config: RunnableConfig):
         for tool in response.tool_calls:
             messages += [
                 ToolMessage(
-                    content=state.github_releases.get(tool["name"], ""),
-                    tool_call_id=tool.get("tool_call_id", ""),
+                    content=state.github_releases.get(tool.get("name", ""), ""),
+                    tool_call_id=tool.get("id", ""),
                     name=tool.get("name", ""),
                 )
             ]
